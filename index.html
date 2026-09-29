@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>זמני היום · אור החיים</title>
+<meta name="description" content="זמני היום והשבת לפי שיטת לוח אור החיים, לכל עיר בישראל ובחו״ל, עם דבר תורה מובנה לכל פרשה, חג וצום.">
+<meta name="theme-color" content="#17204A">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="זמני היום">
+<meta property="og:title" content="זמני היום · אור החיים">
+<meta property="og:description" content="זמני השבת והיום לפי לוח אור החיים, ודבר תורה לכל שבת ומועד.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one mobile column. A dusk-coloured Shabbat card on top, then the day's sun arc and zmanim, then upcoming occasions. Bottom sheets for city/settings and divrei Torah. */
+:root {
+  --bg: #EEF1F7;
+  --surface: #FFFFFF;
+  --ink: #141C33;
+  --muted: #5A6581;
+  --faint: #8A93AB;
+  --line: #DCE1EC;
+  --accent: #213C8C;
+  --accent-soft: #E3E8F6;
+  --gold: #A8690F;
+  --gold-soft: #FAEFD9;
+  --dusk: #17204A;
+  --dusk-2: #2B2F6B;
+  --dusk-ink: #F4F1FF;
+  --dusk-muted: #B9BEE3;
+  --dusk-gold: #F2C46A;
+  --scrim: rgba(12, 16, 34, .45);
+  --shadow: 0 1px 2px rgba(20, 28, 51, .06), 0 8px 24px rgba(20, 28, 51, .06);
+  --f-display: "Frank Ruhl Libre", "David Libre", "Times New Roman", serif;
+  --f-body: "Assistant", "Segoe UI", "Arial Hebrew", Arial, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A0F1E; --surface: #131A2D; --ink: #E7EBF5; --muted: #9AA3BC; --faint: #6D7690;
+    --line: #232D48; --accent: #93AAF2; --accent-soft: #1A2546; --gold: #E9B45A; --gold-soft: #2A2112;
+    --dusk: #141B3F; --dusk-2: #262A60; --scrim: rgba(0, 0, 0, .6);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A0F1E; --surface: #131A2D; --ink: #E7EBF5; --muted: #9AA3BC; --faint: #6D7690;
+  --line: #232D48; --accent: #93AAF2; --accent-soft: #1A2546; --gold: #E9B45A; --gold-soft: #2A2112;
+  --dusk: #141B3F; --dusk-2: #262A60; --scrim: rgba(0, 0, 0, .6);
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+#app { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; letter-spacing: -.01em; margin: 0; }
+.brand small { display: block; font-family: var(--f-body); font-weight: 600; font-size: .75rem; color: var(--muted); letter-spacing: .02em; }
+.city-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: .95rem; box-shadow: var(--shadow); }
+.city-btn svg { width: 16px; height: 16px; flex: none; }
+
+/* Shabbat card */
+.shabbat { position: relative; overflow: hidden; border-radius: 20px; color: var(--dusk-ink); padding: 22px 20px 20px; background: linear-gradient(170deg, var(--dusk) 0%, var(--dusk-2) 78%, #5A3D6E 100%); box-shadow: var(--shadow); }
+.shabbat::after { content: ""; position: absolute; inset: auto -10% -46px -10%; height: 90px; background: radial-gradient(ellipse at 50% 100%, rgba(242,196,106,.55), rgba(242,196,106,0) 70%); pointer-events: none; }
+.shabbat canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .9; }
+.shabbat > *:not(canvas) { position: relative; z-index: 1; }
+.eyebrow { font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: var(--dusk-muted); margin: 0; }
+.shabbat h2 { font-family: var(--f-display); font-weight: 900; font-size: clamp(1.9rem, 8vw, 2.4rem); line-height: 1.1; margin: 4px 0 2px; text-wrap: balance; }
+.shabbat .sub { color: var(--dusk-muted); font-size: .92rem; margin: 0; }
+.countdown { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); font-size: .88rem; font-weight: 600; }
+.countdown .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dusk-gold); box-shadow: 0 0 0 4px rgba(242,196,106,.18); }
+.times3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.t3 { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 10px 9px; min-width: 0; }
+.t3 .lbl { font-size: .76rem; color: var(--dusk-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t3 .val { font-family: var(--f-display); font-weight: 700; font-size: 1.75rem; line-height: 1.15; letter-spacing: .01em; }
+.t3.main .val { color: var(--dusk-gold); }
+.t3 .hint { font-size: .7rem; color: var(--dusk-muted); }
+.also { margin: 12px 0 0; font-size: .85rem; color: var(--dusk-muted); }
+.also b { color: var(--dusk-ink); font-weight: 700; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+.dt-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; background: var(--dusk-gold); color: #231A05; border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 800; font-size: .95rem; }
+.dt-btn svg { width: 18px; height: 18px; }
+
+/* Day section */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+.dayhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 14px 4px; }
+.daytitle { text-align: center; min-width: 0; flex: 1; }
+.daytitle .h { font-family: var(--f-display); font-weight: 700; font-size: 1.2rem; line-height: 1.2; }
+.daytitle .g { color: var(--muted); font-size: .85rem; }
+.nav { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; flex: none; }
+.nav svg { width: 18px; height: 18px; }
+.today-link { display: block; margin: 2px auto 0; background: none; border: 0; color: var(--accent); font-weight: 700; font-size: .82rem; padding: 2px 6px; }
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px 14px 0; }
+.chip { font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.chip.gold { background: var(--gold-soft); color: var(--gold); }
+.arc { display: block; width: 100%; max-width: 100%; height: auto; margin-top: 4px; }
+.arcfacts { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); padding: 0 14px 6px; }
+.arcfacts b { color: var(--ink); font-weight: 700; }
+
+.zlist { list-style: none; margin: 0; padding: 4px 6px 10px; }
+.zgroup { font-size: .72rem; font-weight: 800; letter-spacing: .1em; color: var(--faint); padding: 14px 12px 4px; }
+.zrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; }
+.zrow .n { font-weight: 700; font-size: .98rem; }
+.zrow .m { font-size: .76rem; color: var(--muted); }
+.zrow .v { font-family: var(--f-display); font-weight: 700; font-size: 1.28rem; letter-spacing: .01em; }
+.zrow.past { opacity: .45; }
+.zrow.next { background: var(--accent-soft); }
+.zrow.next .v { color: var(--accent); }
+.zrow .tag { display: inline-block; margin-inline-start: 6px; font-size: .68rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--surface); vertical-align: 2px; }
+.zrow.key .v { color: var(--gold); }
+
+/* Upcoming */
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px -6px; }
+.sec-h h3 { font-family: var(--f-display); font-weight: 700; font-size: 1.25rem; margin: 0; }
+.sec-h span { font-size: .8rem; color: var(--muted); }
+.occ { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.occ li + li { border-top: 1px solid var(--line); }
+.orow { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; }
+.odate { text-align: center; border-radius: 10px; padding: 6px 0 5px; background: var(--bg); }
+.odate .d { font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; line-height: 1.05; }
+.odate .w { font-size: .68rem; color: var(--muted); font-weight: 700; }
+.oinfo { min-width: 0; }
+.oinfo .t { font-weight: 800; font-size: 1rem; line-height: 1.25; }
+.oinfo .s { font-size: .8rem; color: var(--muted); }
+.oinfo .tm { font-size: .82rem; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.oinfo .tm span b { font-weight: 800; }
+.kind { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-end: 6px; vertical-align: 1px; }
+.k-shabbat { background: var(--gold); }
+.k-yomtov { background: var(--accent); }
+.k-fast { background: #B4424A; }
+.k-minor { background: var(--faint); }
+.mini { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 10px; font-size: .78rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
+.odate-btn { all: unset; cursor: pointer; }
+.odate-btn:focus-visible { outline: 2px solid var(--accent); border-radius: 10px; }
+
+.method { font-size: .8rem; color: var(--muted); line-height: 1.6; padding: 0 4px; }
+.method summary { font-weight: 800; color: var(--ink); cursor: pointer; font-size: .9rem; }
+.method ul { padding-inline-start: 18px; margin: 8px 0; }
+
+/* Sheets */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 20; }
+.sheet { position: fixed; inset-inline: 0; bottom: 0; z-index: 21; background: var(--surface); color: var(--ink); border-radius: 22px 22px 0 0; max-height: 88%; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto; box-shadow: 0 -10px 40px rgba(0,0,0,.2); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 10px; border-bottom: 1px solid var(--line); }
+.sheet-h h3 { margin: 0; font-family: var(--f-display); font-size: 1.25rem; }
+.x { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--bg); display: grid; place-items: center; flex: none; }
+.x svg { width: 16px; height: 16px; }
+.sheet-b { overflow-y: auto; padding: 14px 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.field label { display: block; font-weight: 800; font-size: .85rem; margin-bottom: 6px; }
+.field .help { font-size: .76rem; color: var(--muted); margin-top: 4px; }
+.search { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 10px 12px; font: inherit; }
+.clist { list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; }
+.clist .grp { font-size: .7rem; font-weight: 800; letter-spacing: .1em; color: var(--faint); padding: 10px 12px 4px; background: var(--bg); position: sticky; top: 0; }
+.clist button { width: 100%; text-align: start; border: 0; background: none; padding: 10px 12px; display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); }
+.clist button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 800; }
+.clist button span:last-child { color: var(--muted); font-size: .78rem; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px; font-size: .85rem; font-weight: 700; }
+.seg [hidden] { display: none; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stepper button { width: 42px; height: 40px; border: 0; background: var(--bg); font-size: 1.2rem; font-weight: 800; }
+.stepper output { min-width: 84px; text-align: center; font-weight: 800; }
+
+/* Dvar Torah */
+.dt-topic { font-size: .8rem; color: var(--muted); font-weight: 700; }
+.dt-body { font-size: 1.06rem; line-height: 1.85; }
+.dt-body h4 { font-family: var(--f-display); font-weight: 900; font-size: 1.5rem; line-height: 1.25; text-wrap: balance; }
+.dt-body p { margin: 0 0 10px; max-width: 65ch; }
+.dv-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.dv-head h4 { margin: 0; flex: 1 1 16rem; }
+.dv-read { font-size: .75rem; font-weight: 800; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.dv-sum { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 10px 0 14px !important; line-height: 1.6; }
+.dv-part { border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px 4px; margin-bottom: 10px; background: var(--surface); }
+.dv-label { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 800; letter-spacing: .04em; color: var(--accent); margin-bottom: 6px; }
+.dv-n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); font-family: var(--f-display); font-size: .8rem; }
+.dv-who { font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.dv-who::before { content: "· "; }
+.dv-part.verse { background: var(--gold-soft); border-color: transparent; }
+.dv-part.verse .dv-label, .dv-part.verse .dv-n { color: var(--gold); }
+.dv-part.verse .dv-n { background: var(--surface); }
+.dv-part.verse p:not(.dv-ref) { font-family: var(--f-display); font-size: 1.22rem; line-height: 1.7; font-weight: 500; }
+.dv-ref { font-size: .8rem !important; color: var(--muted); }
+.dv-part.lesson { border-color: var(--accent); border-width: 1.5px; }
+.dt-src { font-size: .82rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.thinking { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 600; padding: 18px 0; }
+.thinking i { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(.5); opacity: .4; } }
+.dt-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 9px 14px; font-weight: 800; font-size: .9rem; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.note { font-size: .76rem; color: var(--faint); }
+.err { font-size: .88rem; color: #B4424A; font-weight: 600; }
+.toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: .88rem; z-index: 30; }
+@media (prefers-reduced-motion: reduce) { .thinking i { animation: none; } }
+</style>
+</head>
+<body>
+
+<div id="app" dir="rtl" lang="he">
+  <header class="top">
+    <h1 class="brand">זמני היום<small>לפי שיטת לוח אור החיים</small></h1>
+    <button class="city-btn" id="cityBtn" type="button" aria-label="בחירת עיר והגדרות">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+      <span id="cityName">ירושלים</span>
+    </button>
+  </header>
+
+  <section class="shabbat" id="shabbat" aria-live="polite">
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <p class="eyebrow">השבת הקרובה</p>
+    <h2>טוען לוח…</h2>
+  </section>
+
+  <section class="card" id="day"></section>
+
+  <div class="sec-h"><h3>מה לפנינו</h3><span id="upRange"></span></div>
+  <section class="card"><ul class="occ" id="occ"></ul></section>
+
+  <details class="method" id="method">
+    <summary>שיטת החישוב</summary>
+    <ul>
+      <li><b>הנץ ושקיעה</b> מחושבים לפי גובה העיר מעל פני הים, כדי להתקרב להנץ ולשקיעה הנראים.</li>
+      <li><b>שעות זמניות</b> לפי הגר"א: היום מהנץ עד השקיעה, מחולק ל-12.</li>
+      <li><b>עלות השחר</b>: 72 דקות זמניות לפני הנץ. <b>טלית ותפילין</b>: 60 דקות זמניות לפני הנץ.</li>
+      <li><b>מגן אברהם</b>: היום מעלות השחר עד 72 דקות זמניות אחרי השקיעה.</li>
+      <li><b>מנחה גדולה</b>: חצי שעה זמנית אחרי חצות, ולא פחות מ-30 דקות.</li>
+      <li><b>צאת הכוכבים</b>: 13.5 דקות זמניות אחרי השקיעה. <b>רבנו תם</b>: 72 דקות זמניות אחרי השקיעה.</li>
+      <li><b>הדלקת נרות</b>: לפני השקיעה המישורית, לפי מנהג העיר (ירושלים 40, חיפה 30, שאר ערי ישראל 20, בחו"ל 18). אפשר לשנות בהגדרות.</li>
+      <li><b>עיגול</b>: זמני "סוף זמן" ושקיעה מעוגלים כלפי מטה, זמני "מ-" ויציאה כלפי מעלה, לחומרא.</li>
+    </ul>
+    זהו חישוב אסטרונומי לפי כללי הלוח. ייתכנו הפרשים של דקה-שתיים מהלוח המודפס, שמתחשב בטופוגרפיה של כל מקום. לזמנים של חומרא יש להשאיר מרווח.
+  </details>
+</div>
+
+<div id="sheets"></div>
+
+<script src="vendor/hebcal-core-6.10.0.min.js"></script>
+<script>
+(() => {
+"use strict";
+const H = window.hebcal;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- Cities: [id, name, lat, lon, elevation m, tz, candle minutes, israel?] ---------- */
+const IL = "Asia/Jerusalem";
+const CITIES = [
+  ["jerusalem","ירושלים",31.778,35.2354,754,IL,40,1],["telaviv","תל אביב",32.0853,34.7818,20,IL,20,1],
+  ["bneibrak","בני ברק",32.0807,34.8338,40,IL,20,1],["haifa","חיפה",32.794,34.9896,150,IL,30,1],
+  ["beersheva","באר שבע",31.2518,34.7913,280,IL,20,1],["ashdod","אשדוד",31.8044,34.6553,30,IL,20,1],
+  ["petahtikva","פתח תקווה",32.0871,34.8875,50,IL,20,1],["netanya","נתניה",32.3215,34.8532,30,IL,20,1],
+  ["rishon","ראשון לציון",31.9642,34.8044,45,IL,20,1],["holon","חולון",32.0158,34.7874,35,IL,20,1],
+  ["ramatgan","רמת גן",32.0684,34.8248,60,IL,20,1],["rehovot","רחובות",31.8928,34.8113,60,IL,20,1],
+  ["beitshemesh","בית שמש",31.7470,34.9881,300,IL,20,1],["modiin","מודיעין",31.8969,35.0104,280,IL,20,1],
+  ["modiinillit","מודיעין עילית",31.9322,35.0426,280,IL,20,1],["beitarillit","ביתר עילית",31.6996,35.1150,750,IL,20,1],
+  ["elad","אלעד",32.0522,34.9510,150,IL,20,1],["ashkelon","אשקלון",31.6688,34.5743,30,IL,20,1],
+  ["safed","צפת",32.9646,35.4960,850,IL,20,1],["tiberias","טבריה",32.7922,35.5312,0,IL,20,1],
+  ["netivot","נתיבות",31.4231,34.5886,140,IL,20,1],["ofakim","אופקים",31.3141,34.6203,160,IL,20,1],
+  ["sderot","שדרות",31.5250,34.5961,90,IL,20,1],["kiryatgat","קריית גת",31.6100,34.7642,130,IL,20,1],
+  ["hadera","חדרה",32.4340,34.9196,20,IL,20,1],["herzliya","הרצליה",32.1624,34.8447,30,IL,20,1],
+  ["kfarsaba","כפר סבא",32.1782,34.9076,50,IL,20,1],["raanana","רעננה",32.1848,34.8713,60,IL,20,1],
+  ["roshhaayin","ראש העין",32.0956,34.9566,60,IL,20,1],["afula","עפולה",32.6078,35.2897,60,IL,20,1],
+  ["karmiel","כרמיאל",32.9190,35.2950,250,IL,20,1],["nahariya","נהריה",33.0059,35.0941,20,IL,20,1],
+  ["eilat","אילת",29.5577,34.9519,20,IL,20,1],["dimona","דימונה",31.0700,35.0300,550,IL,20,1],
+  ["maaleadumim","מעלה אדומים",31.7770,35.2980,600,IL,20,1],["ariel","אריאל",32.1046,35.1745,600,IL,20,1],
+  ["kiryatarba","קריית ארבע",31.5330,35.1200,930,IL,20,1],["yavne","יבנה",31.8780,34.7390,40,IL,20,1],
+  ["kiryatmalachi","קריית מלאכי",31.7300,34.7460,70,IL,20,1],["kiryatshmona","קריית שמונה",33.2073,35.5708,150,IL,20,1],
+  ["nyc","ניו יורק",40.7128,-74.006,10,"America/New_York",18,0],["la","לוס אנג'לס",34.0522,-118.2437,90,"America/Los_Angeles",18,0],
+  ["miami","מיאמי",25.7617,-80.1918,2,"America/New_York",18,0],["toronto","טורונטו",43.6532,-79.3832,76,"America/Toronto",18,0],
+  ["london","לונדון",51.5074,-0.1278,11,"Europe/London",18,0],["paris","פריז",48.8566,2.3522,35,"Europe/Paris",18,0],
+  ["antwerp","אנטוורפן",51.2194,4.4025,8,"Europe/Brussels",18,0],["moscow","מוסקבה",55.7558,37.6173,150,"Europe/Moscow",18,0],
+  ["buenosaires","בואנוס איירס",-34.6037,-58.3816,25,"America/Argentina/Buenos_Aires",18,0],["mexico","מקסיקו סיטי",19.4326,-99.1332,2240,"America/Mexico_City",18,0],
+  ["johannesburg","יוהנסבורג",-26.2041,28.0473,1750,"Africa/Johannesburg",18,0],["melbourne","מלבורן",-37.8136,144.9631,30,"Australia/Melbourne",18,0]
+].map(([id, name, lat, lon, elev, tz, candles, il]) => ({ id, name, lat, lon, elev, tz, candles, il: !!il }));
+
+const MOTZEI = [
+  { id: "deg", label: "8.5° מתחת לאופק", short: "8.5°" },
+  { id: "m30", label: "30 דק' אחרי השקיעה", short: "30 דק'" },
+  { id: "m40", label: "40 דק' אחרי השקיעה", short: "40 דק'" },
+  { id: "rt", label: "רבנו תם", short: 'ר"ת' }
+];
+
+const S = {
+  cityId: store.get("z.city", "jerusalem"),
+  candleOverride: store.get("z.candles", null),
+  motzei: store.get("z.motzei", "deg"),
+  sel: null
+};
+const city = () => CITIES.find(c => c.id === S.cityId) || CITIES[0];
+const candleMins = () => S.candleOverride ?? city().candles;
+
+/* ---------- Dates ---------- */
+const MIN = 60000, DAY = 86400000;
+const key = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+function cityTodayKey() {
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: city().tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return p.slice(0, 10);
+}
+const fmtCache = {};
+function hm(d) {
+  if (!d || isNaN(d)) return "—";
+  const tz = city().tz;
+  fmtCache[tz] ||= new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return fmtCache[tz].format(d);
+}
+const round = (d, mode) => {
+  if (!d || isNaN(d)) return d;
+  const t = d.getTime(), f = mode === "floor" ? Math.floor : mode === "ceil" ? Math.ceil : Math.round;
+  return new Date(f(t / MIN) * MIN);
+};
+const WD = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+const WD1 = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const gregHe = d => new Intl.DateTimeFormat("he-IL", { day: "numeric", month: "long" }).format(d);
+const hebDate = d => new H.HDate(d).renderGematriya(true);
+const hebDay = d => { const s = hebDate(d).split(" "); return s[0]; };
+const noNik = "he-x-NoNikud";
+
+/* ---------- Zmanim (Or HaChaim conventions) ---------- */
+function zmanim(d) {
+  const c = city();
+  const geo = new H.GeoLocation(c.name, c.lat, c.lon, c.elev, c.tz);
+  const z = new H.Zmanim(geo, d, true);
+  const sr = z.sunrise(), ss = z.sunset(), slss = z.seaLevelSunset();
+  const mz = (ss - sr) / 720;                      // one "zmanit" minute, in ms
+  const shaa = mz * 60;
+  const T = ms => new Date(ms);
+  const alot = sr - 72 * mz, mgaEnd = ss.getTime() + 72 * mz, mgaShaa = (mgaEnd - alot) / 12;
+  const chatzot = sr.getTime() + 6 * shaa;
+  let motzei;
+  if (S.motzei === "deg") motzei = z.tzeit(8.5);
+  else if (S.motzei === "m30") motzei = T(ss.getTime() + 30 * MIN);
+  else if (S.motzei === "m40") motzei = T(ss.getTime() + 40 * MIN);
+  else motzei = T(mgaEnd);
+  return {
+    sunrise: sr, sunset: ss, mz, shaa,
+    alot: T(alot), misheyakir: T(sr - 60 * mz),
+    shmaMGA: T(alot + 3 * mgaShaa), shmaGRA: T(sr.getTime() + 3 * shaa),
+    tfilaMGA: T(alot + 4 * mgaShaa), tfilaGRA: T(sr.getTime() + 4 * shaa),
+    chatzot: T(chatzot), minchaG: T(chatzot + Math.max(shaa / 2, 30 * MIN)),
+    minchaK: T(sr.getTime() + 9.5 * shaa), plag: T(sr.getTime() + 10.75 * shaa),
+    tzeit: T(ss.getTime() + 13.5 * mz), rt: T(mgaEnd),
+    candles: T(slss.getTime() - candleMins() * MIN),
+    motzei: round(motzei, "ceil"), fastEndStrict: T(ss.getTime() + 20 * MIN)
+  };
+}
+const ZROWS = [
+  ["בוקר"],
+  ["alot", "עלות השחר", "72 דק' זמניות לפני הנץ", "ceil"],
+  ["misheyakir", "טלית ותפילין", "60 דק' זמניות לפני הנץ", "ceil"],
+  ["sunrise", "הנץ החמה", "לפי גובה המקום", "ceil", 1],
+  ["shmaMGA", "סוף זמן ק״ש", "מגן אברהם", "floor"],
+  ["shmaGRA", "סוף זמן ק״ש", 'הגר"א', "floor", 1],
+  ["tfilaMGA", "סוף זמן תפילה", "מגן אברהם", "floor"],
+  ["tfilaGRA", "סוף זמן תפילה", 'הגר"א', "floor"],
+  ["צהריים"],
+  ["chatzot", "חצות היום והלילה", "", "round"],
+  ["minchaG", "מנחה גדולה", "", "ceil"],
+  ["minchaK", "מנחה קטנה", "", "ceil"],
+  ["plag", "פלג המנחה", "", "round"],
+  ["ערב"],
+  ["sunset", "שקיעה", "לפי גובה המקום", "floor", 1],
+  ["tzeit", "צאת הכוכבים", "13.5 דק' זמניות", "ceil", 1],
+  ["rt", "צאת הכוכבים לר״ת", "72 דק' זמניות", "ceil"]
+];
+
+/* ---------- Calendar & occasions ---------- */
+let calCache = { k: "", byDay: {} };
+function calendar(start, days) {
+  const k = `${key(start)}|${days}|${city().il}`;
+  if (calCache.k === k) return calCache.byDay;
+  const evs = H.HebrewCalendar.calendar({ start, end: addDays(start, days), il: city().il, sedrot: true, noModern: true });
+  const byDay = {};
+  for (const e of evs) (byDay[key(e.getDate().greg())] ||= []).push(e);
+  calCache = { k, byDay };
+  return byDay;
+}
+const F = H.flags;
+const SKIP = new Set(["Leil Selichot", "Chag HaBanot", "Rosh Hashana LaBehemot", "Purim Katan", "Shushan Purim Katan", "Pesach Sheni"]);
+const he = e => e.render(noNik);
+const baseHe = b => H.Locale.gettext(b, noNik);
+
+function dayInfo(byDay, d) {
+  const evs = byDay[key(d)] || [];
+  const parsha = evs.find(e => e.getFlags() & F.PARSHA_HASHAVUA);
+  const chag = evs.some(e => e.getFlags() & F.CHAG);
+  return { evs, parsha, chag };
+}
+
+function buildOccasions(today) {
+  const start = addDays(today, -8), byDay = calendar(start, 90);
+  const out = [];
+  // Shabbatot
+  for (let d = start; d < addDays(start, 88); d = addDays(d, 1)) {
+    if (d.getDay() !== 6) continue;
+    const { evs, parsha } = dayInfo(byDay, d);
+    const hol = evs.find(e => e.getFlags() & (F.CHAG | F.CHOL_HAMOED));
+    const special = evs.find(e => e.getFlags() & F.SPECIAL_SHABBAT);
+    const fri = addDays(d, -1), zf = zmanim(fri), zs = zmanim(d);
+    const nextChag = dayInfo(byDay, addDays(d, 1)).chag;
+    const friChag = dayInfo(byDay, fri).chag;
+    const title = parsha ? `שבת ${he(parsha)}` : hol ? `שבת ${he(hol)}` : "שבת קודש";
+    const topic = parsha ? he(parsha) : hol ? he(hol) : "שבת";
+    out.push({
+      kind: "shabbat", id: "s" + key(d), first: fri, last: d, title,
+      sub: [special && he(special), parsha && hol && he(hol)].filter(Boolean).join(" · "),
+      startAt: round(zf.candles, "floor"), startLabel: friChag ? "הדלקה (מאש קיימת)" : "הדלקת נרות",
+      endAt: nextChag ? null : zs.motzei, endLabel: nextChag ? "ממשיך ליום טוב" : "צאת שבת",
+      rtAt: round(zs.rt, "ceil"), bankKey: parsha ? parsha.parsha[0] : hol ? hol.basename() : "Shabbat", topic: `שבת ${topic}${special ? " (" + he(special) + ")" : ""}`
+    });
+  }
+  // Holidays, fasts, rosh chodesh, chanukah
+  const want = F.CHAG | F.CHOL_HAMOED | F.MINOR_HOLIDAY | F.CHANUKAH_CANDLES | F.MINOR_FAST | F.MAJOR_FAST | F.ROSH_CHODESH;
+  const groups = [];
+  const keys = Object.keys(byDay).sort();
+  for (const k of keys) for (const e of byDay[k]) {
+    const f = e.getFlags();
+    if (!(f & want)) continue;
+    if ((f & F.EREV) && !(f & F.CHANUKAH_CANDLES)) continue;
+    const b = e.basename();
+    if (SKIP.has(b)) continue;
+    const d = e.getDate().greg();
+    const g = groups.find(g => g.base === b && (d - g.last) <= DAY * 1.5);
+    if (g) { g.last = d; g.evs.push(e); } else groups.push({ base: b, first: d, last: d, evs: [e] });
+  }
+  for (const g of groups) {
+    const fl = g.evs.reduce((a, e) => a | e.getFlags(), 0);
+    const name = baseHe(g.base);
+    const bk = g.base.startsWith("Rosh Chodesh") ? "Rosh Chodesh" : ({ "Simchat Torah": "Shmini Atzeret", "Shushan Purim": "Purim" })[g.base] || g.base;
+    const o = { id: "h" + key(g.first) + g.base, first: g.first, last: g.last, title: name, sub: "", topic: name, bankKey: bk };
+    if (g.base === "Yom Kippur") {
+      const z0 = zmanim(addDays(g.first, -1)), z1 = zmanim(g.first);
+      Object.assign(o, { kind: "yomtov", fast: true, startAt: round(z0.candles, "floor"), startLabel: "כניסת הצום", endAt: z1.motzei, endLabel: "צאת הצום", rtAt: round(z1.rt, "ceil") });
+    } else if (fl & F.MAJOR_FAST) {
+      const z0 = zmanim(addDays(g.first, -1)), z1 = zmanim(g.first);
+      Object.assign(o, { kind: "fast", startAt: round(z0.sunset, "floor"), startLabel: "תחילת הצום (שקיעה)", endAt: round(z1.tzeit, "ceil"), endLabel: "סוף הצום", strictAt: round(z1.fastEndStrict, "ceil") });
+    } else if (fl & F.MINOR_FAST) {
+      const z = zmanim(g.first);
+      Object.assign(o, { kind: "fast", startAt: round(z.alot, "floor"), startLabel: "תחילת הצום", endAt: round(z.tzeit, "ceil"), endLabel: "סוף הצום", strictAt: round(z.fastEndStrict, "ceil") });
+    } else if (fl & F.CHAG) {
+      const chagDays = g.evs.filter(e => e.getFlags() & F.CHAG).map(e => e.getDate().greg());
+      const fd = chagDays[0], ld = chagDays[chagDays.length - 1];
+      const erev = addDays(fd, -1), ze = zmanim(erev), zl = zmanim(ld);
+      const erevHoly = erev.getDay() === 6 || dayInfo(byDay, erev).chag;
+      const after = addDays(ld, 1), afterHoly = after.getDay() === 6 || dayInfo(byDay, after).chag;
+      Object.assign(o, {
+        kind: "yomtov",
+        startAt: erevHoly ? ze.motzei : round(ze.candles, "floor"), startLabel: erevHoly ? "הדלקה מ-" : "הדלקת נרות",
+        endAt: afterHoly ? null : zl.motzei, endLabel: afterHoly ? "ממשיך לשבת" : "צאת החג"
+      });
+      if (chagDays.length > 1 && (ld - fd) > DAY * 2) o.sub = "כולל חול המועד";
+    } else if (fl & F.ROSH_CHODESH) {
+      Object.assign(o, { kind: "minor", title: he(g.evs[0]) });
+      o.topic = o.title;
+    } else if (g.base === "Chanukah") {
+      const z = zmanim(g.first);
+      Object.assign(o, { kind: "minor", startAt: round(z.sunset, "floor"), startLabel: "נר ראשון (שקיעה)" });
+    } else {
+      o.kind = "minor";
+    }
+    out.push(o);
+  }
+  // A one-day Yom Tov that falls on Shabbat is already shown as that Shabbat
+  const merged = out.filter(o => !(o.kind === "yomtov" && !o.fast && key(o.first) === key(o.last) && o.first.getDay() === 6));
+  merged.sort((a, b) => a.first - b.first || (a.kind === "shabbat" ? 1 : -1));
+  return merged;
+}
+
+/* ---------- Rendering ---------- */
+const ICON = {
+  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2-1.5-5-2-8-1.6V19c3-.4 6 .1 8 1.6 2-1.5 5-2 8-1.6V4.4c-3-.4-6 .1-8 1.6z"/><path d="M12 6v14.6"/></svg>'
+};
+
+function countdown(ms) {
+  const m = Math.max(0, Math.round(ms / MIN)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  const hh = h === 1 ? "שעה" : h === 2 ? "שעתיים" : `${h} שעות`;
+  const and = w => (/^\d/.test(w) ? " ו-" : " ו") + w;
+  if (d >= 1) return `${d === 1 ? "יום" : d === 2 ? "יומיים" : d + " ימים"}${h ? and(hh) : ""}`;
+  if (h >= 1) return `${hh}${mm ? and(mm + " דק'") : ""}`;
+  return `${mm} דק'`;
+}
+
+let OCC = [];
+function renderShabbat() {
+  const now = Date.now();
+  const sh = OCC.find(o => o.kind === "shabbat" && (o.endAt || addDays(o.last, 1)) > now);
+  const el = $("#shabbat");
+  if (!sh) { el.innerHTML = '<canvas id="stars" aria-hidden="true"></canvas><h2>אין נתונים</h2>'; return; }
+  const inShabbat = now >= sh.startAt;
+  const cd = inShabbat
+    ? (sh.endAt ? `שבת שלום · יציאה בעוד ${countdown(sh.endAt - now)}` : "שבת שלום")
+    : `כניסת שבת בעוד ${countdown(sh.startAt - now)}`;
+  const before = OCC.find(o => o.kind !== "shabbat" && o.kind !== "minor" && o.first > now - DAY && o.first < sh.first);
+  const sat = sh.last;
+  el.innerHTML = `
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <p class="eyebrow">${inShabbat ? "שבת היום" : "השבת הקרובה"} · ${esc(city().name)}</p>
+    <h2>${esc(sh.title)}</h2>
+    <p class="sub">${esc(hebDate(sat))} · ${esc(gregHe(sat))}${sh.sub ? " · " + esc(sh.sub) : ""}</p>
+    <div class="countdown num"><span class="dot"></span>${esc(cd)}</div>
+    <div class="times3">
+      <div class="t3 main"><div class="lbl">${esc(sh.startLabel)}</div><div class="val num">${hm(sh.startAt)}</div><div class="hint">${candleMins()} דק' לפני שקיעה</div></div>
+      <div class="t3"><div class="lbl">${esc(sh.endLabel)}</div><div class="val num">${sh.endAt ? hm(sh.endAt) : "—"}</div><div class="hint">${esc(MOTZEI.find(m => m.id === S.motzei).short)}</div></div>
+      <div class="t3"><div class="lbl">רבנו תם</div><div class="val num">${hm(sh.rtAt)}</div><div class="hint">72 דק' זמניות</div></div>
+    </div>
+    ${before ? `<p class="also">לפני כן: <b>${esc(before.title)}</b> · ${esc(WD[before.first.getDay()])} ${esc(hebDay(before.first))}</p>` : ""}
+    <button class="dt-btn" type="button" data-dt="${esc(sh.id)}">${ICON.book}דבר תורה לשבת</button>`;
+  drawStars();
+}
+
+function arcSvg(z, isToday) {
+  const W = 340, Hh = 128, x0 = 26, x1 = W - 26, base = 104, top = 18;
+  const span = z.sunset - z.sunrise;
+  const pt = t => { const f = (t - z.sunrise) / span, a = Math.PI * (1 - f); return [ (x0 + x1) / 2 + Math.cos(a) * (x1 - x0) / 2, base - Math.sin(a) * (base - top) ]; };
+  // RTL: morning on the right, so mirror x
+  const mx = x => W - x;
+  let sun = "";
+  const now = Date.now();
+  if (isToday) {
+    if (now > z.sunrise && now < z.sunset) { const [x, y] = pt(now); sun = `<circle cx="${mx(x)}" cy="${y}" r="15" fill="var(--gold)" opacity=".18"/><circle cx="${mx(x)}" cy="${y}" r="8" fill="var(--gold)"/>`; }
+    else { const side = now <= z.sunrise ? x1 : x0; sun = `<circle cx="${mx(side)}" cy="${base + 12}" r="6" fill="var(--faint)"/>`; }
+  }
+  const marks = [["הנץ", z.sunrise], ["חצות", z.chatzot], ["שקיעה", z.sunset]].map(([l, t]) => {
+    const [x, y] = pt(t);
+    const ly = l === "חצות" ? y - 8 : base + 18;
+    return `<circle cx="${mx(x)}" cy="${y}" r="3" fill="var(--accent)"/><text x="${mx(x)}" y="${ly}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)" font-family="Assistant, sans-serif">${l} ${hm(round(t, "round"))}</text>`;
+  }).join("");
+  let path = "";
+  for (let i = 0; i <= 48; i++) { const [x, y] = pt(+z.sunrise + span * i / 48); path += (i ? "L" : "M") + mx(x).toFixed(1) + " " + y.toFixed(1); }
+  return `<svg class="arc" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="מסלול השמש ביום הנבחר">
+    <line x1="10" x2="${W - 10}" y1="${base}" y2="${base}" stroke="var(--line)" stroke-width="1.5"/>
+    <path d="${path}" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/>
+    ${marks}${sun}</svg>`;
+}
+
+function renderDay() {
+  const d = fromKey(S.sel), todayK = cityTodayKey(), isToday = S.sel === todayK;
+  const z = zmanim(d), now = Date.now();
+  const { evs } = dayInfo(calendar(addDays(d, -3), 10), d);
+  const chips = evs.filter(e => !(e.getFlags() & (F.DAF_YOMI | F.OMER_COUNT | F.SHABBAT_MEVARCHIM | F.MOLAD | F.YOM_KIPPUR_KATAN)))
+    .map(e => `<span class="chip${e.getFlags() & F.PARSHA_HASHAVUA ? " gold" : ""}">${esc(he(e))}</span>`);
+  if (d.getDay() === 5) chips.unshift(`<span class="chip gold">הדלקת נרות ${hm(round(z.candles, "floor"))}</span>`);
+  if (d.getDay() === 6) chips.unshift(`<span class="chip gold">צאת שבת ${hm(z.motzei)}</span>`);
+  let nextMarked = false;
+  const rows = ZROWS.map(r => {
+    if (r.length === 1) return `<li class="zgroup">${r[0]}</li>`;
+    const [k, n, m, mode, isKey] = r, t = round(z[k], mode);
+    let cls = isKey ? " key" : "", tag = "";
+    if (isToday && t < now) cls += " past";
+    else if (isToday && !nextMarked) { cls += " next"; tag = '<span class="tag">הבא</span>'; nextMarked = true; }
+    return `<li class="zrow${cls}"><div><div class="n">${n}${tag}</div>${m ? `<div class="m">${m}</div>` : ""}</div><div class="v num">${hm(t)}</div></li>`;
+  }).join("");
+  const dl = z.sunset - z.sunrise;
+  $("#day").innerHTML = `
+    <div class="dayhead">
+      <button class="nav" type="button" data-nav="-1" aria-label="היום הקודם">${ICON.prev}</button>
+      <div class="daytitle">
+        <div class="h">יום ${WD[d.getDay()]}, ${esc(hebDate(d))}</div>
+        <div class="g">${esc(gregHe(d))} ${d.getFullYear()} · ${esc(city().name)}</div>
+        ${isToday ? "" : '<button class="today-link" type="button" data-today>חזרה להיום</button>'}
+      </div>
+      <button class="nav" type="button" data-nav="1" aria-label="היום הבא">${ICON.next}</button>
+    </div>
+    ${chips.length ? `<div class="chips">${chips.join("")}</div>` : ""}
+    ${arcSvg(z, isToday)}
+    <div class="arcfacts num"><span>אורך היום <b>${Math.floor(dl / 3600000)}:${String(Math.round(dl % 3600000 / MIN)).padStart(2, "0")}</b></span><span>שעה זמנית <b>${(z.shaa / MIN).toFixed(1)} דק'</b></span></div>
+    <ul class="zlist">${rows}</ul>`;
+}
+
+function renderOcc() {
+  const now = Date.now();
+  const list = OCC.filter(o => Math.max(+(o.endAt || 0), +addDays(o.last, 1)) > now).slice(0, 12);
+  if (list.length) $("#upRange").textContent = `עד ${gregHe(list[list.length - 1].first)}`;
+  $("#occ").innerHTML = list.map(o => {
+    const main = o.kind === "shabbat" ? o.last : o.first;
+    const multi = o.last - o.first > DAY * .5 && o.kind !== "shabbat";
+    const kindName = { shabbat: "שבת", yomtov: o.fast ? "צום" : "יום טוב", fast: "צום", minor: "מועד" }[o.kind];
+    const tms = [];
+    if (o.startAt) tms.push(`<span>${esc(o.startLabel)} <b class="num">${hm(o.startAt)}</b></span>`);
+    if (o.endAt) tms.push(`<span>${esc(o.endLabel)} <b class="num">${hm(o.endAt)}</b></span>`);
+    else if (o.endLabel && o.startAt) tms.push(`<span>${esc(o.endLabel)}</span>`);
+    if (o.strictAt) tms.push(`<span>למחמירים <b class="num">${hm(o.strictAt)}</b></span>`);
+    const range = multi ? `${hebDay(o.first)}–${hebDay(o.last)} ${hebDate(o.last).split(" ")[1]}` : hebDate(main).split(" ").slice(0, 2).join(" ");
+    return `<li><div class="orow">
+      <button class="odate-btn" type="button" data-go="${key(main)}" aria-label="הצג זמנים ל${esc(o.title)}"><div class="odate"><div class="d num">${main.getDate()}</div><div class="w">${WD1[main.getDay()]} ${esc(new Intl.DateTimeFormat("he-IL", { month: "short" }).format(main))}</div></div></button>
+      <div class="oinfo">
+        <div class="t"><span class="kind k-${o.kind === "yomtov" && o.fast ? "fast" : o.kind}" aria-hidden="true"></span>${esc(o.title)}</div>
+        <div class="s">${esc(kindName)} · ${esc(range)}${o.sub ? " · " + esc(o.sub) : ""}</div>
+        ${tms.length ? `<div class="tm">${tms.join("")}</div>` : ""}
+      </div>
+      <button class="mini" type="button" data-dt="${esc(o.id)}">דבר תורה</button>
+    </div></li>`;
+  }).join("");
+}
+
+function renderAll() {
+  $("#cityName").textContent = city().name;
+  const today = fromKey(cityTodayKey());
+  if (!S.sel) S.sel = key(today);
+  OCC = buildOccasions(today);
+  renderShabbat(); renderDay(); renderOcc();
+}
+
+/* ---------- Stars on the Shabbat card ---------- */
+function drawStars() {
+  const cv = $("#stars"); if (!cv) return;
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  let s = 7;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * r.width, y = rnd() * r.height * .75, a = .15 + rnd() * .6, rad = rnd() < .1 ? 1.4 : .7;
+    g.fillStyle = `rgba(255,255,255,${a})`; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
+  }
+  // three stars bright enough to end Shabbat
+  [[.14, .16], [.22, .1], [.3, .19]].forEach(([fx, fy]) => { g.fillStyle = "rgba(255,236,190,.95)"; g.beginPath(); g.arc(fx * r.width, fy * r.height, 1.9, 0, 7); g.fill(); });
+}
+
+/* ---------- Sheets ---------- */
+let sheetClose = null;
+function openSheet(title, bodyHtml, onClose) {
+  closeSheet();
+  const host = $("#sheets");
+  host.innerHTML = `<div class="scrim" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" dir="rtl" lang="he">
+      <div class="sheet-h"><h3>${esc(title)}</h3><button class="x" type="button" data-close aria-label="סגירה">${ICON.x}</button></div>
+      <div class="sheet-b">${bodyHtml}</div></div>`;
+  sheetClose = onClose || null;
+  host.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeSheet));
+  setTimeout(() => $(".sheet .x")?.focus(), 0);
+  return $(".sheet-b", host);
+}
+function closeSheet() { if (sheetClose) { const f = sheetClose; sheetClose = null; f(); } $("#sheets").innerHTML = ""; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+let toastT;
+function toast(msg) { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); } t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 1800); }
+
+function openSettings() {
+  const b = openSheet("עיר והגדרות", `
+    <div class="field"><label for="cq">עיר</label>
+      <input class="search" id="cq" type="search" placeholder="חיפוש עיר…" autocomplete="off">
+      <ul class="clist" id="clist" style="margin-top:8px"></ul></div>
+    <div class="field"><label>הדלקת נרות</label>
+      <div class="stepper"><button type="button" id="cm" aria-label="פחות דקות">−</button><output id="cv" class="num"></output><button type="button" id="cp" aria-label="יותר דקות">+</button></div>
+      <div class="help" id="chelp"></div></div>
+    <div class="field"><label>צאת שבת וחג</label><div class="seg" id="mseg"></div>
+      <div class="help">רבנו תם מוצג תמיד בנוסף.</div></div>`);
+  const drawList = q => {
+    const f = CITIES.filter(c => !q || c.name.includes(q));
+    const part = (arr, g) => arr.length ? `<li class="grp">${g}</li>` + arr.map(c => `<li><button type="button" data-city="${c.id}" aria-pressed="${c.id === S.cityId}"><span>${esc(c.name)}</span><span class="num">${c.elev} מ'</span></button></li>`).join("") : "";
+    $("#clist", b).innerHTML = part(f.filter(c => c.il), "ישראל") + part(f.filter(c => !c.il), 'חו"ל') || '<li class="grp">לא נמצאה עיר</li>';
+  };
+  const drawCandles = () => {
+    $("#cv", b).textContent = `${candleMins()} דק'`;
+    $("#chelp", b).textContent = S.candleOverride == null ? `מנהג ${city().name}: ${city().candles} דקות לפני השקיעה` : `שונה ידנית · מנהג העיר ${city().candles} דק'`;
+  };
+  const drawSeg = () => { $("#mseg", b).innerHTML = MOTZEI.map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m.id === S.motzei}">${esc(m.label)}</button>`).join(""); };
+  drawList(""); drawCandles(); drawSeg();
+  $("#cq", b).addEventListener("input", e => drawList(e.target.value.trim()));
+  b.addEventListener("click", e => {
+    const c = e.target.closest("[data-city]"), m = e.target.closest("[data-m]");
+    if (c) { S.cityId = c.dataset.city; S.candleOverride = null; store.set("z.city", S.cityId); store.set("z.candles", null); S.sel = null; calCache.k = ""; renderAll(); drawList($("#cq", b).value.trim()); drawCandles(); toast(`הזמנים מוצגים ל${city().name}`); }
+    if (m) { S.motzei = m.dataset.m; store.set("z.motzei", S.motzei); drawSeg(); renderAll(); }
+  });
+  const step = n => { const v = Math.min(90, Math.max(0, candleMins() + n)); S.candleOverride = v === city().candles ? null : v; store.set("z.candles", S.candleOverride); drawCandles(); renderAll(); };
+  $("#cm", b).addEventListener("click", () => step(-1));
+  $("#cp", b).addEventListener("click", () => step(1));
+}
+
+/* ---------- Divrei Torah: a bank for every parsha and occasion, plus a fresh one each week ---------- */
+let BANK = {}, WEEKLY = {};
+const dataReady = Promise.all([
+  fetch("data/bank.json").then(r => r.ok ? r.json() : {}).then(j => { BANK = j || {}; }).catch(() => {}),
+  fetch("data/weekly.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { WEEKLY = j?.entries || {}; }).catch(() => {})
+]);
+function dvarSources(o) {
+  const out = [];
+  if (o.kind === "shabbat" && WEEKLY[key(o.last)]?.text) out.push({ text: WEEKLY[key(o.last)].text, label: "חדש לשבת זו" });
+  const t = BANK[o.bankKey] || (o.kind === "shabbat" ? BANK.Shabbat : null);
+  if (t) out.push({ text: t, label: out.length ? "מהלוח" : "דבר תורה" });
+  return out;
+}
+
+async function openDvar(id) {
+  const o = OCC.find(x => x.id === id); if (!o) return;
+  const b = openSheet("דבר תורה", `
+    <div class="dt-topic">${esc(o.topic)} · ${esc(hebDate(o.kind === "shabbat" ? o.last : o.first))}</div>
+    <div class="seg" id="dseg" role="group" aria-label="בחירת דבר תורה"></div>
+    <div class="dt-body" id="dbody"><div class="thinking"><i></i>טוען…</div></div>
+    <div class="dt-actions" id="dact"></div>
+    <div class="note">נכתב בעזרת בינה מלאכותית (Claude). מומלץ לעיין במקורות לפני אמירה בציבור.</div>`);
+  await dataReady;
+  if (!b.isConnected) return;
+  const srcs = dvarSources(o), body = $("#dbody", b), seg = $("#dseg", b);
+  let cur = 0;
+  const show = () => {
+    seg.querySelectorAll("button").forEach((x, i) => x.setAttribute("aria-pressed", i === cur));
+    renderDvar(body, srcs[cur].text, true);
+    $("#dact", b).innerHTML = '<button class="btn primary" type="button" data-a="copy">העתקה</button>' + (typeof navigator.share === "function" ? '<button class="btn" type="button" data-a="share">שיתוף</button>' : "");
+  };
+  if (!srcs.length) { seg.hidden = true; body.innerHTML = '<p class="note" style="font-size:.95rem">לנושא הזה עוד אין דבר תורה בלוח.</p>'; return; }
+  if (srcs.length > 1) seg.innerHTML = srcs.map((s, i) => `<button type="button" data-i="${i}">${esc(s.label)}</button>`).join(""); else seg.hidden = true;
+  b.addEventListener("click", async e => {
+    const t = e.target.closest("[data-i]"), a = e.target.closest("[data-a]");
+    if (t) { cur = +t.dataset.i; show(); }
+    if (!a) return;
+    const txt = dvarPlain(srcs[cur].text) + "\n\n" + location.href.split("#")[0];
+    if (a.dataset.a === "share") { try { await navigator.share({ title: parseDvar(srcs[cur].text).title, text: txt }); } catch {} return; }
+    try { await navigator.clipboard.writeText(txt); toast("הועתק"); }
+    catch { const r = document.createRange(); r.selectNodeContents(body); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("הטקסט סומן להעתקה"); }
+  });
+  show();
+}
+
+/* The five parts, in the order they are said at the table */
+const PARTS = [
+  { k: "פסוק", n: "א׳", label: "הפסוק" },
+  { k: "קושיה", n: "ב׳", label: "הקושיה" },
+  { k: "מפרש", n: "ג׳", label: "דברי המפרש" },
+  { k: "חידוש", n: "ד׳", label: "החידוש" },
+  { k: "מסר", n: "ה׳", label: "המסר למעשה" }
+];
+
+function parseDvar(text) {
+  const lines = text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").split("\n").map(l => l.trim()).filter(Boolean);
+  const out = { title: "", summary: "", parts: [], src: "", loose: [] };
+  let cur = null;
+  for (const l of lines) {
+    let m;
+    if ((m = l.match(/^כותרת\s*[:：]\s*(.*)$/))) { out.title = m[1]; cur = null; continue; }
+    if ((m = l.match(/^תקציר\s*[:：]\s*(.*)$/))) { out.summary = m[1]; cur = null; continue; }
+    if ((m = l.match(/^מקורות\s*[:：]\s*(.*)$/))) { out.src = m[1]; cur = null; continue; }
+    if ((m = l.match(/^\[([^\]:：]+)(?:\s*[:：]\s*([^\]]*))?\]\s*(.*)$/))) {
+      const def = PARTS.find(p => m[1].trim().startsWith(p.k)) || { k: m[1], n: "", label: m[1].trim() };
+      cur = { def, who: (m[2] || "").trim(), lines: [] };
+      if (m[3]) cur.lines.push(m[3]);
+      out.parts.push(cur); continue;
+    }
+    if (cur) cur.lines.push(l);
+    else if (!out.title) out.title = l;
+    else out.loose.push(l);
+  }
+  return out;
+}
+const wordCount = d => [d.summary, ...d.parts.flatMap(p => p.lines), ...d.loose].join(" ").split(/\s+/).filter(Boolean).length;
+function renderDvar(el, text, done) {
+  const d = parseDvar(text);
+  const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  el.innerHTML = "";
+  const head = mk("div", "dv-head");
+  if (d.title) head.append(mk("h4", "", d.title));
+  if (done) head.append(mk("span", "dv-read num", `${Math.max(1, Math.round(wordCount(d) / 110))} דק' קריאה בקול`));
+  el.append(head);
+  if (d.summary) el.append(mk("p", "dv-sum", d.summary));
+  for (const l of d.loose) el.append(mk("p", "", l));
+  for (const p of d.parts) {
+    const sec = mk("section", "dv-part" + (p.def.k === "פסוק" ? " verse" : p.def.k === "מסר" ? " lesson" : ""));
+    const h = mk("div", "dv-label");
+    if (p.def.n) h.append(mk("span", "dv-n", p.def.n));
+    h.append(document.createTextNode(p.def.label));
+    if (p.who && p.who !== "רעיון") h.append(mk("span", "dv-who", p.who));
+    sec.append(h);
+    p.lines.forEach(l => sec.append(mk("p", /^\(.*\)$/.test(l) ? "dv-ref" : "", l)));
+    el.append(sec);
+  }
+  if (d.src && done) el.append(mk("div", "dt-src", "מקורות: " + d.src));
+}
+function dvarPlain(text) {
+  const d = parseDvar(text);
+  const out = [d.title, d.summary && `בקצרה: ${d.summary}`, ""];
+  for (const p of d.parts) out.push(`${p.def.label}${p.who && p.who !== "רעיון" ? " (" + p.who + ")" : ""}:`, ...p.lines, "");
+  if (d.src) out.push("מקורות: " + d.src);
+  return out.filter(x => x != null && x !== false).join("\n");
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-nav],[data-today],[data-go],[data-dt],#cityBtn");
+  if (!t) return;
+  if (t.id === "cityBtn") return openSettings();
+  if (t.dataset.dt) return openDvar(t.dataset.dt);
+  if (t.hasAttribute("data-today")) S.sel = cityTodayKey();
+  if (t.dataset.nav) S.sel = key(addDays(fromKey(S.sel), +t.dataset.nav));
+  if (t.dataset.go) { S.sel = t.dataset.go; $("#day").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); }
+  renderDay();
+});
+
+if (!H) { $("#shabbat h2").textContent = "לא ניתן לטעון את הלוח העברי. נסה לרענן."; return; }
+renderAll();
+let lastDay = cityTodayKey();
+setInterval(() => {
+  const k = cityTodayKey();
+  if (k !== lastDay) { if (S.sel === lastDay) S.sel = k; lastDay = k; calCache.k = ""; renderAll(); }
+  else { renderShabbat(); if (S.sel === k) renderDay(); }
+}, 30000);
+window.addEventListener("resize", () => drawStars());
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>

@@ -89,6 +89,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .t3 .val { font-family: var(--f-display); font-weight: 700; font-size: 1.75rem; line-height: 1.15; letter-spacing: .01em; }
 .t3.main .val { color: var(--dusk-gold); }
 .t3 .hint { font-size: .7rem; color: var(--dusk-muted); }
+.t3 .alt { white-space: nowrap; font-size: .74rem; color: var(--dusk-muted); margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,.12); }
+.t3 .alt b { color: var(--dusk-ink); font-weight: 800; }
+.alt40 { color: var(--muted); font-size: .76rem; }
 .also { margin: 12px 0 0; font-size: .85rem; color: var(--dusk-muted); }
 .also b { color: var(--dusk-ink); font-weight: 700; }
 [hidden] { display: none !important; }
@@ -240,7 +243,7 @@ img { max-width: 100%; }
       <li><b>מגן אברהם</b>: היום מעלות השחר עד 72 דקות זמניות אחרי השקיעה.</li>
       <li><b>מנחה גדולה</b>: חצי שעה זמנית אחרי חצות, ולא פחות מ-30 דקות.</li>
       <li><b>צאת הכוכבים</b>: 13.5 דקות זמניות אחרי השקיעה. <b>רבנו תם</b>: 72 דקות זמניות אחרי השקיעה.</li>
-      <li><b>הדלקת נרות</b>: לפני השקיעה המישורית, לפי מנהג העיר (ירושלים 40, חיפה 30, שאר ערי ישראל 20, בחו"ל 18). אפשר לשנות בהגדרות.</li>
+      <li><b>הדלקת נרות</b>: לפני השקיעה המישורית, לפי מנהג העיר (ירושלים 40, חיפה 30, שאר ערי ישראל 20, בחו"ל 18). בערים שבהן המנהג אינו 40 דקות מוצגת גם השעה למנהג 40 דקות. אפשר לשנות את המנהג בהגדרות.</li>
       <li><b>עיגול</b>: זמני "סוף זמן" ושקיעה מעוגלים כלפי מטה, זמני "מ-" ויציאה כלפי מעלה, לחומרא.</li>
     </ul>
     זהו חישוב אסטרונומי לפי כללי הלוח. ייתכנו הפרשים של דקה-שתיים מהלוח המודפס, שמתחשב בטופוגרפיה של כל מקום. לזמנים של חומרא יש להשאיר מרווח.
@@ -361,6 +364,7 @@ function zmanim(d) {
     minchaK: T(sr.getTime() + 9.5 * shaa), plag: T(sr.getTime() + 10.75 * shaa),
     tzeit: T(ss.getTime() + 13.5 * mz), rt: T(mgaEnd),
     candles: T(slss.getTime() - candleMins() * MIN),
+    candles40: candleMins() === 40 ? null : round(T(slss.getTime() - 40 * MIN), "floor"),
     motzei: round(motzei, "ceil"), fastEndStrict: T(ss.getTime() + 20 * MIN)
   };
 }
@@ -424,7 +428,7 @@ function buildOccasions(today) {
     out.push({
       kind: "shabbat", id: "s" + key(d), first: fri, last: d, title,
       sub: [special && he(special), parsha && hol && he(hol)].filter(Boolean).join(" · "),
-      startAt: round(zf.candles, "floor"), startLabel: friChag ? "הדלקה (מאש קיימת)" : "הדלקת נרות",
+      startAt: round(zf.candles, "floor"), alt40: zf.candles40, startLabel: friChag ? "הדלקה (מאש קיימת)" : "הדלקת נרות",
       endAt: nextChag ? null : zs.motzei, endLabel: nextChag ? "ממשיך ליום טוב" : "צאת שבת",
       rtAt: round(zs.rt, "ceil"), bankKey: parsha ? parsha.parsha[0] : hol ? hol.basename() : "Shabbat", topic: `שבת ${topic}${special ? " (" + he(special) + ")" : ""}`
     });
@@ -450,7 +454,7 @@ function buildOccasions(today) {
     const o = { id: "h" + key(g.first) + g.base, first: g.first, last: g.last, title: name, sub: "", topic: name, bankKey: bk };
     if (g.base === "Yom Kippur") {
       const z0 = zmanim(addDays(g.first, -1)), z1 = zmanim(g.first);
-      Object.assign(o, { kind: "yomtov", fast: true, startAt: round(z0.candles, "floor"), startLabel: "כניסת הצום", endAt: z1.motzei, endLabel: "צאת הצום", rtAt: round(z1.rt, "ceil") });
+      Object.assign(o, { kind: "yomtov", fast: true, startAt: round(z0.candles, "floor"), alt40: z0.candles40, startLabel: "כניסת הצום", endAt: z1.motzei, endLabel: "צאת הצום", rtAt: round(z1.rt, "ceil") });
     } else if (fl & F.MAJOR_FAST) {
       const z0 = zmanim(addDays(g.first, -1)), z1 = zmanim(g.first);
       Object.assign(o, { kind: "fast", startAt: round(z0.sunset, "floor"), startLabel: "תחילת הצום (שקיעה)", endAt: round(z1.tzeit, "ceil"), endLabel: "סוף הצום", strictAt: round(z1.fastEndStrict, "ceil") });
@@ -465,7 +469,7 @@ function buildOccasions(today) {
       const after = addDays(ld, 1), afterHoly = after.getDay() === 6 || dayInfo(byDay, after).chag;
       Object.assign(o, {
         kind: "yomtov",
-        startAt: erevHoly ? ze.motzei : round(ze.candles, "floor"), startLabel: erevHoly ? "הדלקה מ-" : "הדלקת נרות",
+        startAt: erevHoly ? ze.motzei : round(ze.candles, "floor"), alt40: erevHoly ? null : ze.candles40, startLabel: erevHoly ? "הדלקה מ-" : "הדלקת נרות",
         endAt: afterHoly ? null : zl.motzei, endLabel: afterHoly ? "ממשיך לשבת" : "צאת החג"
       });
       if (chagDays.length > 1 && (ld - fd) > DAY * 2) o.sub = "כולל חול המועד";
@@ -522,7 +526,7 @@ function renderShabbat() {
     <p class="sub">${esc(hebDate(sat))} · ${esc(gregHe(sat))}${sh.sub ? " · " + esc(sh.sub) : ""}</p>
     <div class="countdown num"><span class="dot"></span>${esc(cd)}</div>
     <div class="times3">
-      <div class="t3 main"><div class="lbl">${esc(sh.startLabel)}</div><div class="val num">${hm(sh.startAt)}</div><div class="hint">${candleMins()} דק' לפני שקיעה</div></div>
+      <div class="t3 main"><div class="lbl">${esc(sh.startLabel)}</div><div class="val num">${hm(sh.startAt)}</div><div class="hint">${candleMins()} דק׳ לפני שקיעה</div>${sh.alt40 ? `<div class="alt num" title="למנהג הדלקה 40 דקות לפני השקיעה">40 דק׳ · <b>${hm(sh.alt40)}</b></div>` : ""}</div>
       <div class="t3"><div class="lbl">${esc(sh.endLabel)}</div><div class="val num">${sh.endAt ? hm(sh.endAt) : "—"}</div><div class="hint">${esc(MOTZEI.find(m => m.id === S.motzei).short)}</div></div>
       <div class="t3"><div class="lbl">רבנו תם</div><div class="val num">${hm(sh.rtAt)}</div><div class="hint">72 דק' זמניות</div></div>
     </div>
@@ -562,7 +566,7 @@ function renderDay() {
   const { evs } = dayInfo(calendar(addDays(d, -3), 10), d);
   const chips = evs.filter(e => !(e.getFlags() & (F.DAF_YOMI | F.OMER_COUNT | F.SHABBAT_MEVARCHIM | F.MOLAD | F.YOM_KIPPUR_KATAN)))
     .map(e => `<span class="chip${e.getFlags() & F.PARSHA_HASHAVUA ? " gold" : ""}">${esc(he(e))}</span>`);
-  if (d.getDay() === 5) chips.unshift(`<span class="chip gold">הדלקת נרות ${hm(round(z.candles, "floor"))}</span>`);
+  if (d.getDay() === 5) chips.unshift(`<span class="chip gold">הדלקת נרות ${hm(round(z.candles, "floor"))}</span>` + (z.candles40 ? `<span class="chip">40 דק׳: ${hm(z.candles40)}</span>` : ""));
   if (d.getDay() === 6) chips.unshift(`<span class="chip gold">צאת שבת ${hm(z.motzei)}</span>`);
   let nextMarked = false;
   const rows = ZROWS.map(r => {
@@ -599,7 +603,7 @@ function renderOcc() {
     const multi = o.last - o.first > DAY * .5 && o.kind !== "shabbat";
     const kindName = { shabbat: "שבת", yomtov: o.fast ? "צום" : "יום טוב", fast: "צום", minor: "מועד" }[o.kind];
     const tms = [];
-    if (o.startAt) tms.push(`<span>${esc(o.startLabel)} <b class="num">${hm(o.startAt)}</b></span>`);
+    if (o.startAt) tms.push(`<span>${esc(o.startLabel)} <b class="num">${hm(o.startAt)}</b>${o.alt40 ? ` <span class="alt40 num">(40 דק׳: ${hm(o.alt40)})</span>` : ""}</span>`);
     if (o.endAt) tms.push(`<span>${esc(o.endLabel)} <b class="num">${hm(o.endAt)}</b></span>`);
     else if (o.endLabel && o.startAt) tms.push(`<span>${esc(o.endLabel)}</span>`);
     if (o.strictAt) tms.push(`<span>למחמירים <b class="num">${hm(o.strictAt)}</b></span>`);

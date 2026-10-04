@@ -173,8 +173,14 @@ img { max-width: 100%; }
 .clist button span:last-child { color: var(--muted); font-size: .78rem; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px; font-size: .85rem; font-weight: 700; }
-.seg [hidden] { display: none; }
+.seg[hidden], .seg [hidden] { display: none; }
 .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.seg-sm button { padding: 4px 10px; font-size: .78rem; }
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; }
+.tabs[hidden] { display: none; }
+.tabs button { border: 0; background: none; border-radius: 11px; padding: 9px 6px; min-height: 40px; font-weight: 800; font-size: .95rem; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .stepper button { width: 42px; height: 40px; border: 0; background: var(--bg); font-size: 1.2rem; font-weight: 800; }
 .stepper output { min-width: 84px; text-align: center; font-weight: 800; }
@@ -695,59 +701,83 @@ function openSettings() {
   $("#cp", b).addEventListener("click", () => step(1));
 }
 
-/* ---------- Divrei Torah: a bank for every parsha and occasion, plus a fresh one each week ---------- */
+/* ---------- Divrei Torah: a bank for every parsha and occasion, plus fresh ones each week, in three styles ---------- */
 let BANK = {}, WEEKLY = {};
 const dataReady = Promise.all([
   fetch("data/bank.json").then(r => r.ok ? r.json() : {}).then(j => { BANK = j || {}; }).catch(() => {}),
   fetch("data/weekly.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { WEEKLY = j?.entries || {}; }).catch(() => {})
 ]);
+
+/* Each style has its own five parts, in the order they are said at the table */
+const STYLES = [
+  { id: "pshat", label: "פשט", parts: [
+    { k: "פסוק", label: "הפסוק" }, { k: "קושיה", label: "הקושיה" }, { k: "מפרש", label: "דברי המפרש" },
+    { k: "חידוש", label: "החידוש" }, { k: "מסר", label: "המסר למעשה" }] },
+  { id: "chassidut", label: "חסידות", parts: [
+    { k: "פסוק", label: "הפסוק" }, { k: "דיוק", label: "הדיוק" }, { k: "מפרש", label: "בתורת החסידות" },
+    { k: "נקודה", label: "הנקודה הפנימית" }, { k: "עבודה", label: "לעבודת ה'" }] },
+  { id: "mussar", label: "מוסר", parts: [
+    { k: "פסוק", label: "הפסוק" }, { k: "התבוננות", label: "ההתבוננות" }, { k: "מפרש", label: "בספרי המוסר" },
+    { k: "מידה", label: "המידה" }, { k: "קבלה", label: "קבלה לשבוע" }] }
+];
+const NUMS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ז׳"];
+const LESSON = ["מסר", "עבודה", "קבלה"];
+const styleOf = id => STYLES.find(s => s.id === id) || STYLES[0];
+// An entry is a plain string (older format, counted as pshat) or { pshat, chassidut, mussar }
+const byStyle = v => typeof v === "string" ? { pshat: v } : (v && typeof v === "object" ? v : {});
+
 function dvarSources(o) {
-  const out = [];
-  if (o.kind === "shabbat" && WEEKLY[key(o.last)]?.text) out.push({ text: WEEKLY[key(o.last)].text, label: "חדש לשבת זו" });
-  const t = BANK[o.bankKey] || (o.kind === "shabbat" ? BANK.Shabbat : null);
-  if (t) out.push({ text: t, label: out.length ? "מהלוח" : "דבר תורה" });
-  return out;
+  const w = o.kind === "shabbat" ? WEEKLY[key(o.last)] : null;
+  const fresh = w ? byStyle(w.styles || w.text) : {};
+  const bank = byStyle(BANK[o.bankKey] || (o.kind === "shabbat" ? BANK.Shabbat : null));
+  return STYLES.map(s => ({
+    style: s,
+    items: [fresh[s.id] && { text: fresh[s.id], label: "חדש לשבת זו" }, bank[s.id] && { text: bank[s.id], label: "מהלוח" }].filter(Boolean)
+  })).filter(g => g.items.length);
 }
 
 async function openDvar(id) {
   const o = OCC.find(x => x.id === id); if (!o) return;
   const b = openSheet("דבר תורה", `
     <div class="dt-topic">${esc(o.topic)} · ${esc(hebDate(o.kind === "shabbat" ? o.last : o.first))}</div>
-    <div class="seg" id="dseg" role="group" aria-label="בחירת דבר תורה"></div>
-    <div class="dt-body" id="dbody"><div class="thinking"><i></i>טוען…</div></div>
+    <div class="tabs" id="dstyle" role="tablist" aria-label="סגנון דבר התורה"></div>
+    <div class="seg seg-sm" id="dseg" role="group" aria-label="בחירת דבר תורה" hidden></div>
+    <div class="dt-body" id="dbody" role="tabpanel"><div class="thinking"><i></i>טוען…</div></div>
     <div class="dt-actions" id="dact"></div>
     <div class="note">נכתב בעזרת בינה מלאכותית (Claude). מומלץ לעיין במקורות לפני אמירה בציבור.</div>`);
   await dataReady;
   if (!b.isConnected) return;
-  const srcs = dvarSources(o), body = $("#dbody", b), seg = $("#dseg", b);
-  let cur = 0;
+  const groups = dvarSources(o), body = $("#dbody", b), tabs = $("#dstyle", b), seg = $("#dseg", b);
+  if (!groups.length) { tabs.hidden = true; body.innerHTML = '<p class="note" style="font-size:.95rem">לנושא הזה עוד אין דבר תורה בלוח.</p>'; return; }
+  let g = Math.max(0, groups.findIndex(x => x.style.id === store.get("dvarStyle", "pshat"))), cur = 0;
+  const item = () => groups[g].items[cur];
   const show = () => {
-    seg.querySelectorAll("button").forEach((x, i) => x.setAttribute("aria-pressed", i === cur));
-    renderDvar(body, srcs[cur].text, true);
+    tabs.innerHTML = groups.map((x, i) => `<button type="button" role="tab" data-g="${i}" aria-selected="${i === g}" tabindex="${i === g ? 0 : -1}">${esc(x.style.label)}</button>`).join("");
+    tabs.hidden = groups.length < 2;
+    const its = groups[g].items;
+    seg.hidden = its.length < 2;
+    seg.innerHTML = its.length < 2 ? "" : its.map((s, i) => `<button type="button" data-i="${i}" aria-pressed="${i === cur}">${esc(s.label)}</button>`).join("");
+    renderDvar(body, item().text, true, groups[g].style);
     $("#dact", b).innerHTML = '<button class="btn primary" type="button" data-a="copy">העתקה</button>' + (typeof navigator.share === "function" ? '<button class="btn" type="button" data-a="share">שיתוף</button>' : "");
   };
-  if (!srcs.length) { seg.hidden = true; body.innerHTML = '<p class="note" style="font-size:.95rem">לנושא הזה עוד אין דבר תורה בלוח.</p>'; return; }
-  if (srcs.length > 1) seg.innerHTML = srcs.map((s, i) => `<button type="button" data-i="${i}">${esc(s.label)}</button>`).join(""); else seg.hidden = true;
+  const pick = i => { g = i; cur = 0; store.set("dvarStyle", groups[g].style.id); show(); $(`[data-g="${g}"]`, tabs)?.focus(); };
+  tabs.addEventListener("keydown", e => {
+    const d = { ArrowLeft: 1, ArrowRight: -1, Home: -g, End: groups.length - 1 - g }[e.key]; // RTL: left moves forward
+    if (d == null) return;
+    e.preventDefault(); pick((g + d + groups.length) % groups.length);
+  });
   b.addEventListener("click", async e => {
-    const t = e.target.closest("[data-i]"), a = e.target.closest("[data-a]");
-    if (t) { cur = +t.dataset.i; show(); }
+    const t = e.target.closest("[data-g]"), s = e.target.closest("[data-i]"), a = e.target.closest("[data-a]");
+    if (t) return pick(+t.dataset.g);
+    if (s) { cur = +s.dataset.i; show(); return; }
     if (!a) return;
-    const txt = dvarPlain(srcs[cur].text) + "\n\n" + location.href.split("#")[0];
-    if (a.dataset.a === "share") { try { await navigator.share({ title: parseDvar(srcs[cur].text).title, text: txt }); } catch {} return; }
+    const txt = dvarPlain(item().text, groups[g].style) + "\n\n" + location.href.split("#")[0];
+    if (a.dataset.a === "share") { try { await navigator.share({ title: parseDvar(item().text).title, text: txt }); } catch {} return; }
     try { await navigator.clipboard.writeText(txt); toast("הועתק"); }
     catch { const r = document.createRange(); r.selectNodeContents(body); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("הטקסט סומן להעתקה"); }
   });
   show();
 }
-
-/* The five parts, in the order they are said at the table */
-const PARTS = [
-  { k: "פסוק", n: "א׳", label: "הפסוק" },
-  { k: "קושיה", n: "ב׳", label: "הקושיה" },
-  { k: "מפרש", n: "ג׳", label: "דברי המפרש" },
-  { k: "חידוש", n: "ד׳", label: "החידוש" },
-  { k: "מסר", n: "ה׳", label: "המסר למעשה" }
-];
 
 function parseDvar(text) {
   const lines = text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").split("\n").map(l => l.trim()).filter(Boolean);
@@ -759,8 +789,7 @@ function parseDvar(text) {
     if ((m = l.match(/^תקציר\s*[:：]\s*(.*)$/))) { out.summary = m[1]; cur = null; continue; }
     if ((m = l.match(/^מקורות\s*[:：]\s*(.*)$/))) { out.src = m[1]; cur = null; continue; }
     if ((m = l.match(/^\[([^\]:：]+)(?:\s*[:：]\s*([^\]]*))?\]\s*(.*)$/))) {
-      const def = PARTS.find(p => m[1].trim().startsWith(p.k)) || { k: m[1], n: "", label: m[1].trim() };
-      cur = { def, who: (m[2] || "").trim(), lines: [] };
+      cur = { k: m[1].trim(), who: (m[2] || "").trim(), lines: [] };
       if (m[3]) cur.lines.push(m[3]);
       out.parts.push(cur); continue;
     }
@@ -770,8 +799,9 @@ function parseDvar(text) {
   }
   return out;
 }
+const partLabel = (p, style) => (style.parts.find(x => p.k.startsWith(x.k)) || STYLES.flatMap(s => s.parts).find(x => p.k.startsWith(x.k)) || { label: p.k }).label;
 const wordCount = d => [d.summary, ...d.parts.flatMap(p => p.lines), ...d.loose].join(" ").split(/\s+/).filter(Boolean).length;
-function renderDvar(el, text, done) {
+function renderDvar(el, text, done, style = STYLES[0]) {
   const d = parseDvar(text);
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   el.innerHTML = "";
@@ -781,22 +811,22 @@ function renderDvar(el, text, done) {
   el.append(head);
   if (d.summary) el.append(mk("p", "dv-sum", d.summary));
   for (const l of d.loose) el.append(mk("p", "", l));
-  for (const p of d.parts) {
-    const sec = mk("section", "dv-part" + (p.def.k === "פסוק" ? " verse" : p.def.k === "מסר" ? " lesson" : ""));
+  d.parts.forEach((p, i) => {
+    const sec = mk("section", "dv-part" + (p.k === "פסוק" ? " verse" : LESSON.includes(p.k) ? " lesson" : ""));
     const h = mk("div", "dv-label");
-    if (p.def.n) h.append(mk("span", "dv-n", p.def.n));
-    h.append(document.createTextNode(p.def.label));
+    h.append(mk("span", "dv-n", NUMS[i] || ""));
+    h.append(document.createTextNode(partLabel(p, style)));
     if (p.who && p.who !== "רעיון") h.append(mk("span", "dv-who", p.who));
     sec.append(h);
     p.lines.forEach(l => sec.append(mk("p", /^\(.*\)$/.test(l) ? "dv-ref" : "", l)));
     el.append(sec);
-  }
+  });
   if (d.src && done) el.append(mk("div", "dt-src", "מקורות: " + d.src));
 }
-function dvarPlain(text) {
+function dvarPlain(text, style = STYLES[0]) {
   const d = parseDvar(text);
   const out = [d.title, d.summary && `בקצרה: ${d.summary}`, ""];
-  for (const p of d.parts) out.push(`${p.def.label}${p.who && p.who !== "רעיון" ? " (" + p.who + ")" : ""}:`, ...p.lines, "");
+  for (const p of d.parts) out.push(`${partLabel(p, style)}${p.who && p.who !== "רעיון" ? " (" + p.who + ")" : ""}:`, ...p.lines, "");
   if (d.src) out.push("מקורות: " + d.src);
   return out.filter(x => x != null && x !== false).join("\n");
 }

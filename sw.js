@@ -1,6 +1,6 @@
 // Offline support: the app shell and the divrei Torah bank are cached on install;
 // the weekly dvar Torah is fetched fresh when online and falls back to the cache.
-const VERSION = "zmanim-v2";
+const VERSION = "zmanim-v3";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "vendor/hebcal-core-6.10.0.min.js",
   "data/bank.json", "data/weekly.json", "icons/icon.svg", "icons/icon-192.png", "icons/apple-touch-icon.png"
